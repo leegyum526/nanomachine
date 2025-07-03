@@ -4,7 +4,8 @@ const cors = require('cors');
 require('dotenv').config({ path: './.env' });
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;  // 환경변수 PORT 우선 사용
+
 const API_KEY = process.env.API_KEY;
 
 app.use(cors());
@@ -25,5 +26,5 @@ app.get('/api/arrival/:station', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`서버 실행중: http://localhost:${PORT}`); 
+    console.log(`🚀 서버 실행중: http://localhost:${PORT}`);
 });
