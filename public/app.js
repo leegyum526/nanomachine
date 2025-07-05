@@ -5,7 +5,7 @@ let checkInterval = null;
 
 // 🚇 역과 노선 매핑
 const stationLineMap = {
-  '구리': ['1063', '1008'],  // 경의중앙선, 8호선
+  '구리': ['1063', '1008'],
   '도농': ['1063'],
   '다산': ['1008'],
   '석촌': ['1008'],
@@ -87,102 +87,28 @@ const stationLineMap = {
   '서울': ['1063']
 };
 
-// 🚇 8호선 역 순서
+// 🚇 역 순서
 const line8 = [
-  '별내',
-  '다산',
-  '동구릉',
-  '구리',
-  '장자호수공원',
-  '암사역사공원',
-  '암사',
-  '천호(풍납토성)',
-  '강동구청',
-  '몽촌토성(평화의문)',
-  '잠실',
-  '석촌',
-  '송파',
-  '가락시장',
-  '문정',
-  '장지',
-  '복정',
-  '남위례',
-  '산성',
-  '남한산성입구(성남법원,검찰청)',
-  '단대오거리',
-  '신흥',
-  '수진',
-  '모란'
+  '별내', '다산', '동구릉', '구리', '장자호수공원', '암사역사공원', '암사', '천호(풍납토성)',
+  '강동구청', '몽촌토성(평화의문)', '잠실', '석촌', '송파', '가락시장', '문정', '장지',
+  '복정', '남위례', '산성', '남한산성입구(성남법원,검찰청)', '단대오거리', '신흥', '수진', '모란'
 ];
 
-// 🚇 경의중앙선 역 순서
 const gyeonguiLine = [
-  '문산',
-  '운천',
-  '임진강',
-  '파주',
-  '월롱',
-  '금촌',
-  '금릉',
-  '운정',
-  '야당',
-  '탄현',
-  '일산',
-  '풍산',
-  '백마',
-  '곡산',
-  '대곡',
-  '능곡',
-  '행신',
-  '강매',
-  '한국항공대',
-  '수색',
-  '디지털미디어시티',
-  '가좌',
-  '홍대입구',
-  '서강대',
-  '공덕',
-  '서울',
-  '신촌(경의중앙선)',
-  '효창공원앞',
-  '용산',
-  '이촌',
-  '서빙고',
-  '한남',
-  '옥수',
-  '응봉',
-  '왕십리',
-  '청량리',
-  '회기',
-  '중랑',
-  '상봉',
-  '망우',
-  '양원',
-  '구리',
-  '도농',
-  '양정',
-  '덕소',
-  '도심',
-  '팔당',
-  '운길산',
-  '양수',
-  '신원',
-  '국수',
-  '아신',
-  '오빈',
-  '양평',
-  '원덕',
-  '용문',
-  '지평'
+  '문산', '운천', '임진강', '파주', '월롱', '금촌', '금릉', '운정', '야당', '탄현', '일산',
+  '풍산', '백마', '곡산', '대곡', '능곡', '행신', '강매', '한국항공대', '수색',
+  '디지털미디어시티', '가좌', '홍대입구', '서강대', '공덕', '서울', '신촌(경의중앙선)',
+  '효창공원앞', '용산', '이촌', '서빙고', '한남', '옥수', '응봉', '왕십리', '청량리', '회기',
+  '중랑', '상봉', '망우', '양원', '구리', '도농', '양정', '덕소', '도심', '팔당', '운길산',
+  '양수', '신원', '국수', '아신', '오빈', '양평', '원덕', '용문', '지평'
 ];
-
 
 const lineOrderMap = {
   '1063': gyeonguiLine,
   '1008': line8,
 };
 
-// 🚇 방향 구하는 함수
+// 🚇 방향 계산
 function getDirection(lineId, start, end) {
   const order = lineOrderMap[lineId];
   if (!order) return null;
@@ -192,7 +118,7 @@ function getDirection(lineId, start, end) {
   return startIdx < endIdx ? '하행' : '상행';
 }
 
-// 🚇 탑승 버튼 클릭 이벤트
+// 🚇 탑승 버튼
 document.getElementById('rideBtn').addEventListener('click', () => {
   const startStation = document.getElementById('startStation').value.trim();
   const endStation = document.getElementById('endStation').value.trim();
@@ -214,26 +140,29 @@ document.getElementById('rideBtn').addEventListener('click', () => {
     .then(data => {
       const rows = data.realtimeArrivalList || [];
 
-      const targetTrain = rows.find(r =>
-        r.statnNm.trim().toLowerCase() === startStation.toLowerCase() &&
-        (
-          r.arvlMsg2.trim() === `${startStation} 진입` ||
-          r.arvlMsg2.trim() === `${startStation} 도착` ||
-          r.arvlMsg2.trim() === `${startStation} 출발`
-        ) &&
-        possibleLines.includes(r.subwayId)
-      );
+      const targetTrain = rows.find(r => {
+        const isLineMatch = possibleLines.includes(r.subwayId);
+        if (!isLineMatch) return false;
+
+        const expectedDirection = getDirection(r.subwayId, startStation, endStation);
+        const isDirectionMatch = r.updnLine === expectedDirection;
+
+        const statusMatch = ['진입', '도착', '출발'].some(status =>
+          r.arvlMsg2.trim() === `${startStation} ${status}`
+        );
+
+        return r.statnNm.trim() === startStation && isLineMatch && isDirectionMatch && statusMatch;
+      });
 
       if (targetTrain) {
         trainNo = targetTrain.btrainNo;
         subwayId = targetTrain.subwayId;
         direction = getDirection(subwayId, startStation, endStation);
 
-        if (!direction) {
-          return alert('방향을 확인할 수 없습니다.');
-        }
+        if (!direction) return alert('방향을 확인할 수 없습니다.');
 
-        document.getElementById('status').innerText = `탑승 완료! 열차번호: ${trainNo}, 노선: ${subwayId}, 방향: ${direction}`;
+        document.getElementById('status').innerText =
+          `탑승 완료! 열차번호: ${trainNo}, 노선: ${subwayId}, 방향: ${direction}`;
         startMonitoring(endStation);
       } else {
         alert('현재 열차가 출발역에 도착하지 않았습니다. 열차 도착 후 다시 시도하세요.');
